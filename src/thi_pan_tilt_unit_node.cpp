@@ -202,7 +202,8 @@ void syncSetPositionCallback(const dynamixel_sdk_examples::SyncSetPosition::Cons
   {
     ROS_INFO("setPosition : [ID:%d] [POSITION:%d]", msg->id1, msg->position1);
     ROS_INFO("setPosition : [ID:%d] [POSITION:%d]", msg->id2, msg->position2);
-  } else 
+  } 
+  else 
   {
     ROS_ERROR("Failed to set position! Result: %d", dxl_comm_result);
   }
