@@ -11,32 +11,85 @@
 
 
 #include <thi_pan_tilt_unit/PanTiltUnit.h>
-#include <sensor_msgs/Joy.h>
+// #include <sensor_msgs/Joy.h>
+#include <std_msgs/Float64.h>
 
 PanTiltUnit* panTiltUnit = nullptr; 
 std::vector<double> pos = {0.0, 0.0};
 
-
-void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
+struct VALUES
 {
-
-    const auto vel_pan   = msg->axes[3]*50.0; //
-    const auto vel_tilt  = msg->axes[4]*50.0; 
-
-    // std::vector<double> pos = {std::fabs(msg->axes[3]*1023.0), std::fabs(msg->axes[4])*1023.0};
-
-    pos[0] = vel_pan  + pos[0]; 
-    pos[1] = vel_tilt + pos[1];
+    float axis_pan  = 0.0;
+    float axis_tilt = 0.0;
+    float btn_reste = 0.0;  
+} joy_values;
 
 
-    if(msg->buttons[5] == 1)
+
+void update_pan_tilt_unit()
+{
+    const auto vel_pan  = -joy_values.axis_pan  * 15.0;
+    const auto vel_tilt = -joy_values.axis_tilt * 15.0;
+
+    pos[1] = vel_pan  + pos[1]; 
+    pos[0] = vel_tilt + pos[0];
+
+    if(pos[0] >= 3500)
+        pos[0] = 3500;
+    else if(pos[0] <= 2300)
+        pos[0] = 2300;
+    
+    if(pos[1] <= 2050)
+        pos[1] = 2050;
+    else if(pos[1] >= 4060)
+        pos[1] = 4060;
+
+    if(joy_values.btn_reste == 1.0)
     {
-        pos[0] = 0.0;
-        pos[1] = 0.0;
+        pos[0] = 3200.0;
+        pos[1] = 3082.0;
     }
+
     panTiltUnit->setPosition(pos);
-    panTiltUnit->getPosition(); 
+    panTiltUnit->getPosition();   
+
 }
+
+void cb_axis_pan(const std_msgs::Float64::ConstPtr& msg)
+{
+    joy_values.axis_pan = msg->data;
+}
+
+void cb_axis_tilt(const std_msgs::Float64::ConstPtr& msg)
+{
+    joy_values.axis_tilt = msg->data;
+}
+
+void cb_btn_reset(const std_msgs::Float64::ConstPtr& msg)
+{
+    joy_values.btn_reste = msg->data;
+}
+
+// void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
+// {
+
+//     const auto vel_pan   = msg->axes[3]*50.0; //
+//     const auto vel_tilt  = msg->axes[4]*50.0; 
+
+//     // std::vector<double> pos = {std::fabs(msg->axes[3]*1023.0), std::fabs(msg->axes[4])*1023.0};
+
+//     pos[0] = vel_pan  + pos[0]; 
+//     pos[1] = vel_tilt + pos[1];
+
+
+//     if(msg->buttons[5] == 1)
+//     {
+//         pos[0] = 0.0;
+//         pos[1] = 0.0;
+//     }
+//     panTiltUnit->setPosition(pos);
+//     panTiltUnit->getPosition(); 
+// }
 
 
 int main(int argc, char ** argv)
@@ -50,18 +103,27 @@ int main(int argc, char ** argv)
     ros::NodeHandle n; 
 
 
-    ros::Subscriber joySub = n.subscribe("joy", 1000, joyCallback);
+    // ros::Subscriber joySub = n.subscribe("joy", 1000, joyCallback);
+    ros::Subscriber sub_axis_pan = n.subscribe("axis_pan", 10, cb_axis_pan);
+    ros::Subscriber sub_axis_tilt = n.subscribe("axis_tilt", 10, cb_axis_tilt);
+    ros::Subscriber sub_btn_reset = n.subscribe("btn_reset", 10, cb_btn_reset);
+
 
 
     panTiltUnit = new PanTiltUnit(1,2);
     panTiltUnit->setLEDsOn(); 
-    std::vector<double> pos = {0.0, 0.0}; 
+    std::vector<double> pos = {3200.0, 3082.0}; 
     panTiltUnit->setPositionMode();
-    panTiltUnit->enableTorque(); 
+    panTiltUnit->enableTorque();
+
+    pos[0] = 3500.0;
+    pos[1] = 3082.0;
 
     ros::Rate loop_rate(50);
     while(ros::ok())
     {
+        update_pan_tilt_unit();
+
         loop_rate.sleep();
         ros::spinOnce();
     }    
