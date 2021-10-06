@@ -21,37 +21,58 @@ struct VALUES
 {
     float axis_pan  = 0.0;
     float axis_tilt = 0.0;
-    float btn_reste = 0.0;  
+    float btn_reset = 0.0;  
+    float btn_reset_buf = 0.0;
 } joy_values;
 
 
 
 void update_pan_tilt_unit()
 {
-    const auto vel_pan  = -joy_values.axis_pan  * 15.0;
-    const auto vel_tilt = -joy_values.axis_tilt * 15.0;
+
+
+    const auto vel_pan  = joy_values.axis_pan  * 15.0;
+    const auto vel_tilt = joy_values.axis_tilt * 15.0;
 
     pos[1] = vel_pan  + pos[1]; 
     pos[0] = vel_tilt + pos[0];
 
-    if(pos[0] >= 3500)
-        pos[0] = 3500;
-    else if(pos[0] <= 2300)
-        pos[0] = 2300;
+    if(pos[0] >= 3650)
+        pos[0] = 3650;
+    else if(pos[0] <= 2180)
+        pos[0] = 2180;
     
     if(pos[1] <= 2050)
         pos[1] = 2050;
     else if(pos[1] >= 4060)
         pos[1] = 4060;
 
-    if(joy_values.btn_reste == 1.0)
+    if(joy_values.btn_reset == 1.0 && joy_values.btn_reset_buf == 0.0)
     {
-        pos[0] = 3200.0;
-        pos[1] = 3082.0;
+        if(pos[0] == 2760.0 && pos[1] == 3057.0)
+        {
+            pos[0] = 2200.0;
+            pos[1] = 3057.0;
+        }
+        else if (pos[0] == 2200.0 && pos[1] == 3057.0)
+        {
+            pos[0] = 2760.0;
+            pos[1] = 3057.0;
+        }
+        else
+        {
+            pos[0] = 2760.0;
+            pos[1] = 3057.0;
+        }
+
     }
 
     panTiltUnit->setPosition(pos);
     panTiltUnit->getPosition();   
+
+    joy_values.btn_reset_buf = joy_values.btn_reset;
+
+    // ROS_INFO("tilt: %f, pan: %f", pos[0], pos[1]);
 
 }
 
@@ -67,7 +88,7 @@ void cb_axis_tilt(const std_msgs::Float64::ConstPtr& msg)
 
 void cb_btn_reset(const std_msgs::Float64::ConstPtr& msg)
 {
-    joy_values.btn_reste = msg->data;
+    joy_values.btn_reset = msg->data;
 }
 
 // void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
@@ -112,12 +133,12 @@ int main(int argc, char ** argv)
 
     panTiltUnit = new PanTiltUnit(1,2);
     panTiltUnit->setLEDsOn(); 
-    std::vector<double> pos = {3200.0, 3082.0}; 
+    std::vector<double> pos = {0.0, 0.0}; 
     panTiltUnit->setPositionMode();
     panTiltUnit->enableTorque();
 
-    pos[0] = 3500.0;
-    pos[1] = 3082.0;
+    // pos[0] = 3500.0;
+    // pos[1] = 3082.0;
 
     ros::Rate loop_rate(50);
     while(ros::ok())
